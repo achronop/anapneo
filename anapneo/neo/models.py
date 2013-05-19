@@ -2,7 +2,7 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.core import validators
 from django.core.exceptions import ValidationError
-from django.core.validators import RegexValidator, MinValueValidator
+from django.core.validators import RegexValidator, MinValueValidator, MaxValueValidator
 
 from datetime import datetime
 
@@ -38,9 +38,48 @@ class Neo(models.Model):
     arc = models.FloatField(verbose_name="Arc", validators=[MinValueValidator(0.0)])
     nominal_h = models.FloatField(verbose_name="Nominal H", blank=True, validators=[MinValueValidator(0.0)])
     image = models.ImageField(upload_to='.', verbose_name="Image", blank=True)
+    
+    def number_of_feedback(self):
+        return self.feedback_set.count()
+    
+    def number_of_votes_yes(self):
+        votes = 0
+        for f in self.feedback_set.all():
+            if f.vote == 1:
+                votes+=1
+        return votes      
+    number_of_votes_yes.allow_tags = True
+    number_of_votes_yes.admin_order_field = 'no'
+    number_of_votes_yes.short_description = 'Yes Votes'
+
+    def number_of_votes_no(self):
+        votes = 0
+        for f in self.feedback_set.all():
+            if f.vote == -1:
+                votes+=1
+        return votes      
+    number_of_votes_no.allow_tags = True
+    number_of_votes_no.admin_order_field = 'no'
+    number_of_votes_no.short_description = 'No Votes'
+
+    def number_of_votes_total(self):
+        votes = 0
+        for f in self.feedback_set.all():
+            votes+=f.vote
+        return votes      
+    number_of_votes_total.allow_tags = True
+    number_of_votes_total.admin_order_field = 'no'
+    number_of_votes_total.short_description = 'Total Vote Score'
+
+    def __unicode__(self):
+        return str(self.no)
+    
+    class Meta:
+        ordering = ['no']
 
 
 class Feedback(models.Model):
     user = models.ForeignKey(User)
     neo = models.ForeignKey(Neo)
-    vote = models.IntegerField()
+    vote = models.IntegerField(verbose_name = 'Vote', 
+                               validators =  [MinValueValidator(-1), MaxValueValidator(1)] )

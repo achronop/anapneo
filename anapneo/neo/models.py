@@ -25,7 +25,7 @@ class UserProfile(models.Model):
 
 class Neo(models.Model):
     user = models.ForeignKey(User)
-    no = models.IntegerField(verbose_name="ID")
+    no = models.IntegerField(verbose_name="ID", unique=True)
     score = models.PositiveIntegerField(verbose_name="Score (%)")
     observation_date = models.DateTimeField(verbose_name="Observation Date")
     position_ra = models.CharField(max_length=100, verbose_name="R.A.")

@@ -1,20 +1,18 @@
 from django.shortcuts import render, get_object_or_404, get_list_or_404, redirect
 from django.contrib.auth.models import User
 from django.core.paginator import Paginator, InvalidPage, EmptyPage
+from django.template import RequestContext
 
 from anapneo.neo.models import UserProfile, Neo, Feedback
 from anapneo.neo.forms import NeoForm, UserProfileForm, FeedbackForm
 from anapneo.decorators import is_logged_in
+from django.db.models import Q
 
 from datetime import datetime
 
 
 def index(request):
-    neo_list = Neo.objects.all().extra(
-           select={
-               'display_name': 'SELECT display_name FROM neo_userprofile WHERE neo_userprofile.id = neo_neo.user_id'
-           },
-        ).order_by('-no')[:7]
+    neo_list = Neo.objects.all().order_by('-no')[:7]
     if request.user.is_authenticated():
         me = UserProfile.objects.get(user=request.user)
         return render(request, 'index.html', {'me': me, 'neo_list': neo_list})
@@ -28,11 +26,13 @@ def dashboard(request):
         except UserProfile.DoesNotExist:
             display_name = request.user
             return redirect('/register/')
-    neos = Neo.objects.all().extra(
-           select={
-               'display_name': 'SELECT display_name FROM neo_userprofile WHERE neo_userprofile.id = neo_neo.user_id'
-           },
-        )
+    
+    # Search form
+    if request.method == 'POST':
+        q = request.POST['query']
+        neos = filter_neos(q)
+    else:
+        neos = Neo.objects.all()
 
     paginator = Paginator(neos, 50)
     # Make sure page request is an int. If not, deliver first page.
@@ -48,7 +48,35 @@ def dashboard(request):
 
     if request.user.is_authenticated():
         return render(request, 'dashboard.html', {'neo_list': neo_list, 'page': page, 'me': me})
-    return render(request, 'dashboard.html', {'neo_list': neo_list, 'page': page})
+    return render(request, 'dashboard.html', {'neo_list': neo_list, 'page': page},
+                  context_instance=RequestContext(request))
+
+
+# It is used for searching in dashboard thus
+# neo_fields MUST be the same with fields 
+# displayed in dashboard.html 
+def filter_neos(query):
+    str_fields = ['no',
+                  #'observation_date', # No date fields included 
+                  'score',
+                  'user__display_name', 
+                  'position_ra',
+                  'position_dec',
+                  'magnitude',
+                  #'updated',
+                  'num_obs',
+                  'arc',
+                  'nominal_h']
+    
+    or_query = None
+    for f in str_fields:
+        q = Q(**{"%s__contains" % f : query})
+        if or_query is None:
+            or_query = q
+        else:
+            or_query = or_query | q
+            
+    return Neo.objects.filter(or_query)
 
 
 @is_logged_in

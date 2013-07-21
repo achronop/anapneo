@@ -10,7 +10,10 @@
       {% if user.is_authenticated %}
         <a id="dashboard-create" href="/neo/create/" class="btn btn-primary">submit new</a>
       {% endif %}
-      <input type="text" placeholder="Search" class="input-medium search-query">
+      <form action="/dashboard/" method="post">
+        {% csrf_token %}
+        <input type="search" name="query" placeholder="Search" class="input-medium search-query">
+      </form>
     </div>
   </div>
   <div>
@@ -31,11 +34,14 @@
     </thead>
     <tbody>
       {% for neo in neo_list %}
+      	{% comment %}
+      		same fields with filter_neos() str_fields list
+      	{% endcomment %}
         <tr>
           <td><a href="/neo/{{ neo.no }}/">{{ neo.no }}</a></td>
           <td>{{ neo.observation_date }}</td>
           <td>{{ neo.score }}</td>
-          <td><a href="/u/{{ neo.display_name }}/">{{ neo.display_name }}</a></td>
+          <td><a href="/u/{{ neo.user.display_name }}/">{{ neo.user.display_name }}</a></td>    
           <td>{{ neo.position_ra }}</td>
           <td>{{ neo.position_dec }}</td>
           <td>{{ neo.magnitude }}</td>

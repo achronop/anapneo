@@ -9,7 +9,6 @@ from datetime import datetime
 
 class UserProfile(models.Model):
     user = models.ForeignKey(User, unique=True)
-    email = models.EmailField(max_length=100)
     display_name = models.CharField(max_length=50, unique=True,
         validators=[
             RegexValidator(regex=r'("")|(^[a-z0-9_]+$)',
@@ -21,10 +20,17 @@ class UserProfile(models.Model):
     country = models.CharField(max_length=40, blank=True, verbose_name="Country")
     lat = models.CharField(max_length=20, blank=True, verbose_name="Latitude")
     lon = models.CharField(max_length=20, blank=True, verbose_name="Longitude")
-
+    
+    def get_user_mail(self):
+        return self.user.email
+    get_user_mail.short_description = 'email'
+    
+    def __unicode__(self):
+        return str(self.display_name)
+    
 
 class Neo(models.Model):
-    user = models.ForeignKey(User)
+    user = models.ForeignKey(UserProfile)
     no = models.IntegerField(verbose_name="ID", unique=True)
     score = models.PositiveIntegerField(verbose_name="Score (%)")
     observation_date = models.DateTimeField(verbose_name="Observation Date")
@@ -38,6 +44,10 @@ class Neo(models.Model):
     arc = models.FloatField(verbose_name="Arc", validators=[MinValueValidator(0.0)])
     nominal_h = models.FloatField(verbose_name="Nominal H", blank=True, validators=[MinValueValidator(0.0)])
     image = models.ImageField(upload_to='.', verbose_name="Image", blank=True)
+
+    def get_user_display_name(self):
+        return self.user.display_name
+    get_user_display_name.short_description = 'display name'
     
     def number_of_feedback(self):
         return self.feedback_set.count()
@@ -76,6 +86,7 @@ class Neo(models.Model):
     
     class Meta:
         ordering = ['no']
+        
 
 
 class Feedback(models.Model):
